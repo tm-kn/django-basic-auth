@@ -346,3 +346,69 @@ class TestResponseClass(TestCaseMixin, TestCase):
         response = self.middleware(self.request)
         self.assertIs(response.__class__, TestResponse)
         self.assertEqual(response.content, b"Test message. :P")
+
+
+class TestAzureFrontDoorHealthProbeWhitelisting(TestCaseMixin, TestCase):
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_enabled_permission_denied(self):
+        response = self.middleware(self.request)
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_bypasses_basic_auth(self):
+        self.request.META["HTTP_X_FD_HEALTHPROBE"] = "1"
+        self.assertTrue(self.middleware._is_health_probe(self.request))
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_does_not_bypass_basic_auth_if_set_to_zero(self):
+        self.request.META["HTTP_X_FD_HEALTHPROBE"] = "0"
+        self.assertFalse(self.middleware._is_health_probe(self.request))
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_does_not_bypass_basic_auth_if_empty(self):
+        self.request.META["HTTP_X_FD_HEALTHPROBE"] = ""
+        self.assertFalse(self.middleware._is_health_probe(self.request))
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_does_not_bypass_basic_auth_if_random_value(self):
+        self.request.META["HTTP_X_FD_HEALTHPROBE"] = "llamasavers"
+        self.assertFalse(self.middleware._is_health_probe(self.request))
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="testlogin",
+        BASIC_AUTH_PASSWORD="testpassword",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=False,
+    )
+    def test_health_probe_does_not_bypass_basic_auth_if_not_enabled(self):
+        self.request.META["HTTP_X_FD_HEALTHPROBE"] = "1"
+        self.assertFalse(self.middleware._is_health_probe(self.request))
+
+    @override_settings(
+        BASIC_AUTH_LOGIN="test",
+        BASIC_AUTH_PASSWORD="test",
+        BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED=True,
+    )
+    def test_health_probe_does_not_break_basic_auth(self):
+        self.request.META["HTTP_AUTHORIZATION"] = "Basic dGVzdDp0ZXN0"
+        self.middleware(self.request)
+        self.get_response_mock.assert_called_once_with(self.request)

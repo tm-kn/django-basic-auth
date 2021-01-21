@@ -34,6 +34,9 @@ class BasicAuthIPWhitelistMiddleware:
         # Check if IP is whitelisted
         if self._is_ip_whitelisted(request):
             return
+        # Skip basic auth for health probes.
+        if self._is_health_probe(request):
+            return
         # Fallback to basic auth if configured.
         if self._is_basic_auth_configured():
             return self._basic_auth_response(request)
@@ -137,3 +140,14 @@ class BasicAuthIPWhitelistMiddleware:
         configured.
         """
         return self.basic_auth_login and self.basic_auth_password
+
+    def _is_health_probe(self, request):
+        """
+        Check if request is a health probe.
+        """
+        azure_health_probe_enabled = getattr(
+            settings, "BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED", False
+        )
+        if azure_health_probe_enabled:
+            # https://docs.microsoft.com/en-us/azure/frontdoor/front-door-http-headers-protocol
+            return request.META.get("HTTP_X_FD_HEALTHPROBE", "") == "1"

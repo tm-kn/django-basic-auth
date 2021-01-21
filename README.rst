@@ -177,4 +177,15 @@ You can skip the middleware by setting
 
 
 This may be handy if you have other middleware that you want to have
-co-existing different middleware that restrict access to the website.
+
+``BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can disable basic authentication for `Azure Front Door health probes
+<https://docs.microsoft.com/en-us/azure/frontdoor/front-door-health-probes>`_.
+It is strongly discouraged having this setting enabled if your server won't
+strip this header if it was inserted by users manually into their request.
+
+.. code:: python
+
+   BASIC_AUTH_AZURE_FRONT_DOOR_HEALTH_PROBE_ENABLED = True
